@@ -124,15 +124,15 @@ const InteractiveCalendar: React.FC = () => {
         {/* INTERACTIVE LAYER: CALENDAR GRID */}
         <div style={{
           position: 'absolute',
-          top: '59.8%',
-          right: '28.5%',
-          width: '24.8%',
-          height: '16.5%',
+          top: '59.1%', // Higher to align better
+          right: '28.3%',
+          width: '24.9%',
+          height: '16.8%',
           display: 'grid',
           gridTemplateColumns: 'repeat(7, 1fr)',
           gridTemplateRows: 'repeat(6, 1fr)',
           columnGap: 'min(0.2vw, 2px)',
-          rowGap: 'min(0.1vw, 1px)',
+          rowGap: 'min(0.1vw, 2px)',
           zIndex: 10
         }}>
           {calendarDays.map((dateObj, i) => {
@@ -146,19 +146,17 @@ const InteractiveCalendar: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: 'min(1.0vw, 12px)',
+                  fontSize: 'min(1.1vw, 13px)', // Slightly larger font
                   fontWeight: '700',
                   cursor: 'pointer',
-                  color: isSelected ? 'white' : 'transparent', // Transparent to let image numbers show, unless selected
+                  color: isSelected ? 'white' : 'transparent',
                   backgroundColor: isSelected ? '#29abe2' : 'transparent',
-                  borderRadius: '2px',
+                  borderRadius: '1px', // Sharper corners like the design
                   transition: 'background 0.2s',
                   userSelect: 'none',
-                  // Using a slight overlay for hover effect
                   position: 'relative'
                 }}
               >
-                {/* We only show the number if it's selected to override the image number with a highlighted version */}
                 {isSelected ? dateObj.day : ''}
                 
                 {/* Invisible hover area always active */}
