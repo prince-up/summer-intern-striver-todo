@@ -6,15 +6,24 @@ const InteractiveCalendar: React.FC = () => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Set to January 2022 to match the background image
   const [currentDate, setCurrentDate] = useState<Date>(new Date(2022, 0, 1));
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [notes, setNotes] = useState<string>('');
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
 
-  // Key for storage based on month/year
+  // Mouse Move Handler for 3D Tilt
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const { clientX, clientY } = e;
+    const { innerWidth, innerHeight } = window;
+    const x = (clientX - innerWidth / 2) / 50;
+    const y = (clientY - innerHeight / 2) / 50;
+    setTilt({ x: -y, y: x });
+  };
+
+  const handleMouseLeave = () => setTilt({ x: 0, y: 0 });
+
   const storageKey = `calendar-${currentDate.getFullYear()}-${currentDate.getMonth()}`;
 
-  // Load data from localStorage on mount and month change
   useEffect(() => {
     const savedData = localStorage.getItem(storageKey);
     if (savedData) {
@@ -31,7 +40,6 @@ const InteractiveCalendar: React.FC = () => {
     }
   }, [currentDate, storageKey]);
 
-  // Save data to localStorage whenever notes or selectedDate change
   useEffect(() => {
     const dataToSave = {
       notes,
@@ -46,29 +54,23 @@ const InteractiveCalendar: React.FC = () => {
 
   function getFirstDayOfMonth(date: Date): number {
     const day = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-    return day === 0 ? 6 : day - 1; // Monday start
+    return day === 0 ? 6 : day - 1;
   }
 
   const daysInMonth = getDaysInMonth(currentDate);
   const firstDay = getFirstDayOfMonth(currentDate);
 
   const calendarDays: Array<{ date: Date; day: number; isCurrentMonth: boolean }> = [];
-  
-  // Previous month padding
   const prevMonthDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0);
   const prevMonthDays = prevMonthDate.getDate();
   for (let i = firstDay; i > 0; i--) {
     const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, prevMonthDays - i + 1);
     calendarDays.push({ date, day: date.getDate(), isCurrentMonth: false });
   }
-
-  // Current month
   for (let i = 1; i <= daysInMonth; i++) {
     const monthDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), i);
     calendarDays.push({ date: monthDate, day: i, isCurrentMonth: true });
   }
-
-  // Next month padding
   const remaining = 42 - calendarDays.length;
   for (let i = 1; i <= remaining; i++) {
     const nextMonthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, i);
@@ -76,17 +78,44 @@ const InteractiveCalendar: React.FC = () => {
   }
 
   return (
-    <div style={{ 
-      width: '100vw', 
-      height: '100vh', 
-      backgroundColor: '#f0f0f0',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      overflow: 'hidden',
-      fontFamily: 'sans-serif'
-    }}>
-      {/* Root Container that matches image aspect ratio */}
+    <div 
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{ 
+        width: '100vw', 
+        height: '100vh', 
+        backgroundColor: '#e5e7eb',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+        fontFamily: 'sans-serif',
+        perspective: '1000px'
+      }}
+    >
+      <style>{`
+        @keyframes sway {
+          0% { transform: rotate(-0.5deg); }
+          50% { transform: rotate(0.5deg); }
+          100% { transform: rotate(-0.5deg); }
+        }
+        @keyframes snowfall {
+          0% { transform: translateY(-10px) translateX(0); opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { transform: translateY(300px) translateX(20px); opacity: 0; }
+        }
+        .snow-particle {
+          position: absolute;
+          background: white;
+          border-radius: 50%;
+          pointer-events: none;
+          z-index: 5;
+          filter: blur(1px);
+          animation: snowfall linear infinite;
+        }
+      `}</style>
+
       <div style={{ 
         position: 'relative',
         height: '95vh',
@@ -95,10 +124,28 @@ const InteractiveCalendar: React.FC = () => {
         backgroundSize: 'contain',
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'center',
-        boxShadow: '0 10px 30px rgba(0,0,0,0.1)'
+        transition: 'transform 0.1s ease-out',
+        transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+        animation: tilt.x === 0 ? 'sway 4s ease-in-out infinite' : 'none'
       }}>
         
-        {/* INTERACTIVE LAYER: NOTES AREA */}
+        <div style={{ position: 'absolute', top: '25%', left: '26.8%', width: '46.4%', height: '22%', overflow: 'hidden', pointerEvents: 'none' }}>
+           {[...Array(20)].map((_, i) => (
+             <div 
+               key={i} 
+               className="snow-particle"
+               style={{
+                 left: `${Math.random() * 100}%`,
+                 width: `${Math.random() * 4 + 2}px`,
+                 height: `${Math.random() * 4 + 2}px`,
+                 animationDuration: `${Math.random() * 3 + 2}s`,
+                 animationDelay: `${Math.random() * 5}s`,
+                 opacity: Math.random()
+               }}
+             />
+           ))}
+        </div>
+
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
@@ -121,10 +168,9 @@ const InteractiveCalendar: React.FC = () => {
           }}
         />
 
-        {/* INTERACTIVE LAYER: CALENDAR GRID */}
         <div style={{
           position: 'absolute',
-          top: '59.1%', // Higher to align better
+          top: '59.1%',
           right: '28.3%',
           width: '24.9%',
           height: '16.8%',
@@ -146,29 +192,25 @@ const InteractiveCalendar: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: 'min(1.1vw, 13px)', // Slightly larger font
+                  fontSize: 'min(1.1vw, 13px)',
                   fontWeight: '700',
                   cursor: 'pointer',
                   color: isSelected ? 'white' : 'transparent',
                   backgroundColor: isSelected ? '#29abe2' : 'transparent',
-                  borderRadius: '1px', // Sharper corners like the design
-                  transition: 'background 0.2s',
+                  borderRadius: '1px',
+                  transition: 'all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                  transform: isSelected ? 'scale(1.1)' : 'scale(1)',
                   userSelect: 'none',
-                  position: 'relative'
+                  position: 'relative',
+                  boxShadow: isSelected ? '0 4px 10px rgba(41, 171, 226, 0.4)' : 'none'
                 }}
               >
                 {isSelected ? dateObj.day : ''}
-                
-                {/* Invisible hover area always active */}
                 {!isSelected && (
                   <div 
                     title={dateObj.date.toDateString()}
-                    style={{ 
-                      position: 'absolute', 
-                      inset: 0, 
-                      backgroundColor: 'transparent'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(41, 171, 226, 0.1)'}
+                    style={{ position: 'absolute', inset: 0, backgroundColor: 'transparent' }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(41, 171, 226, 0.15)'}
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                   />
                 )}
@@ -177,7 +219,6 @@ const InteractiveCalendar: React.FC = () => {
           })}
         </div>
 
-        {/* NAVIGATION CONTROLS - Positioned near the month text or bottom */}
         <div style={{
           position: 'absolute',
           top: '41%',
@@ -188,35 +229,21 @@ const InteractiveCalendar: React.FC = () => {
         }}>
           <button 
             onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
-            style={{ padding: '4px 8px', fontSize: '10px', cursor: 'pointer', opacity: 0.5, border: 'none', background: 'transparent' }}
+            style={{ padding: '8px', fontSize: '14px', cursor: 'pointer', opacity: 0.3, border: 'none', background: 'transparent', transition: 'opacity 0.2s' }}
+            onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+            onMouseLeave={(e) => e.currentTarget.style.opacity = '0.3'}
           >
             ←
           </button>
           <button 
             onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
-            style={{ padding: '4px 8px', fontSize: '10px', cursor: 'pointer', opacity: 0.5, border: 'none', background: 'transparent' }}
+            style={{ padding: '8px', fontSize: '14px', cursor: 'pointer', opacity: 0.3, border: 'none', background: 'transparent', transition: 'opacity 0.2s' }}
+            onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+            onMouseLeave={(e) => e.currentTarget.style.opacity = '0.3'}
           >
             →
           </button>
         </div>
-
-        {/* DATE INDICATOR HOVER AREA (Informational) */}
-        {selectedDate && (
-          <div style={{
-            position: 'absolute',
-            bottom: '18%',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: 'rgba(255,255,255,0.9)',
-            padding: '5px 15px',
-            borderRadius: '20px',
-            fontSize: '12px',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-            zIndex: 20
-          }}>
-            Selected: {selectedDate.toDateString()}
-          </div>
-        )}
       </div>
     </div>
   );
